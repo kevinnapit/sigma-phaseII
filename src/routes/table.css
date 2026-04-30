@@ -1,0 +1,37 @@
+table.pin-first th:first-child,
+table.pin-first td:first-child {
+	position: sticky;
+	left: 0;
+	z-index: 10;
+	background: var(--muted);
+	box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Automatic right pinning for last column (action column) */
+table.pin-last th:last-child,
+table.pin-last td:last-child {
+	position: sticky;
+	right: 0;
+	z-index: 10;
+	background: linear-gradient(to right, transparent, white 12px);
+	padding-left: 1.25rem;
+	box-shadow: -2px 0 4px -2px rgba(0, 0, 0, 0.1);
+}
+
+/* Multi-pin: First two columns */
+table.pin-first-two th:first-child,
+table.pin-first-two td:first-child {
+	position: sticky;
+	left: 0;
+	z-index: 11;
+	background: var(--muted);
+}
+
+table.pin-first-two th:nth-child(2),
+table.pin-first-two td:nth-child(2) {
+	position: sticky;
+	left: var(--first-col-width, 80px);
+	z-index: 10;
+	background: var(--muted);
+	box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1);
+}

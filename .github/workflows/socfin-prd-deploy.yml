@@ -1,0 +1,181 @@
+name: Deploy SvelteKit Static App to Socfin Environment PRD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: socfin-prod-env
+
+    steps:
+      # 1. Checkout source code
+      - name: 📂 Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup Bun
+      - name: 🧰 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # 3. Install dependencies
+      - name: 📦 Install Dependencies
+        run: bun install
+
+      # 4. Build SvelteKit (STATIC) with ENV
+      - name: ⚙️ Build SvelteKit App
+        env:
+          PUBLIC_API_BASE_URL: ${{ secrets.PUBLIC_API_BASE_URL }}
+          PUBLIC_AUTH_API_URL: ${{ secrets.PUBLIC_AUTH_API_URL }}
+          PUBLIC_T1_API_HRM_URL: ${{ secrets.PUBLIC_T1_API_HRM_URL }}
+          PUBLIC_T1_API_PRS_URL: ${{ secrets.PUBLIC_T1_API_PRS_URL }}
+          PUBLIC_T1_API_CLINIC_URL: ${{ secrets.PUBLIC_T1_API_CLINIC_URL }}
+          PUBLIC_T2_API_URL: ${{ secrets.PUBLIC_T2_API_URL }}
+          PUBLIC_T3_API_URL: ${{ secrets.PUBLIC_T3_API_URL }}
+          PUBLIC_SEND_CREDENTIALS: ${{ secrets.PUBLIC_SEND_CREDENTIALS }}
+          PUBLIC_NOTIFICATION_API_URL: ${{ secrets.PUBLIC_NOTIFICATION_API_URL }}
+          SW_DEV: ${{ secrets.SW_DEV }}
+          INJECT_MANIFEST: ${{ secrets.INJECT_MANIFEST }}
+          PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.PUBLIC_VAPID_PUBLIC_KEY }}
+          FALLBACK_ENABLED: ${{ secrets.FALLBACK_ENABLED }}
+        run: |
+          echo "===== BUILD ENV DEBUG (SOCFIN) ====="
+          echo "PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}"
+          echo "PUBLIC_AUTH_API_URL=${PUBLIC_AUTH_API_URL}"
+          echo "PUBLIC_T1_API_HRM_URL=${PUBLIC_T1_API_HRM_URL}"
+          echo "PUBLIC_T1_API_PRS_URL=${PUBLIC_T1_API_PRS_URL}"
+          echo "PUBLIC_T1_API_CLINIC_URL=${PUBLIC_T1_API_CLINIC_URL}"
+          echo "PUBLIC_T2_API_URL=${PUBLIC_T2_API_URL}"
+          echo "PUBLIC_T3_API_URL=${PUBLIC_T3_API_URL}"
+          echo "PUBLIC_SEND_CREDENTIALS=${PUBLIC_SEND_CREDENTIALS}"
+          echo "PUBLIC_NOTIFICATION_API_URL=${PUBLIC_NOTIFICATION_API_URL}"
+          echo "SW_DEV=${SW_DEV}"
+          echo "INJECT_MANIFEST=${INJECT_MANIFEST}"
+          echo "PUBLIC_VAPID_PUBLIC_KEY=${PUBLIC_VAPID_PUBLIC_KEY}"
+          echo "FALLBACK_ENABLED=${FALLBACK_ENABLED}"
+          echo "===================================="
+
+          bun --bun run build
+
+          echo "===== BUILD OUTPUT CHECK ====="
+          ls -lah build || ls -lah dist
+
+          echo "===== BUNDLE SIZE CHECK ====="
+          du -sh build || du -sh dist
+
+      # 5. Setup SSH agent with single private key
+      - name: 🔐 Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      # 6. Configure SSH for multi-hop connection
+      - name: 🔧 Configure SSH Multi-Hop
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Create SSH config for multi-hop connection
+          cat > ~/.ssh/config << 'EOF'
+          # VPS Proxy (First hop)
+          Host vps-proxy
+            HostName ${{ secrets.VPS_HOST }}
+            User ${{ secrets.VPS_USER }}
+            Port 8195
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+          # Tunnel Host (Second hop via VPS)
+          Host tunnel-host
+            HostName ${{ secrets.TUNNEL_HOST }}
+            User ${{ secrets.TUNNEL_USER }}
+            Port 22
+            ProxyJump vps-proxy
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+          # Sigma Host (Final destination via Tunnel)
+          Host sigma-host
+            HostName ${{ secrets.SIGMA_HOST }}
+            User ${{ secrets.SIGMA_USER }}
+            Port 22
+            ProxyJump tunnel-host
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
+
+          chmod 600 ~/.ssh/config
+
+          echo "===== SSH CONFIG ====="
+          cat ~/.ssh/config
+          echo "======================"
+
+      # 7. Test SSH connections
+      - name: 🧪 Test SSH Multi-Hop Connection
+        run: |
+          echo "Testing VPS Proxy connection..."
+          ssh -o ConnectTimeout=10 vps-proxy "echo 'VPS Proxy: Connected ✓'"
+
+          echo "Testing Tunnel Host connection..."
+          ssh -o ConnectTimeout=30 tunnel-host "echo 'Tunnel Host: Connected ✓'"
+
+          echo "Testing Sigma Host connection..."
+          ssh -o ConnectTimeout=30 sigma-host "echo 'Sigma Host: Connected ✓'"
+
+      # 8. Create tar archive of build folder
+      - name: 📦 Create Build Archive
+        run: |
+          echo "Creating tar archive..."
+          tar -czf build.tar.gz -C build .
+          ls -lh build.tar.gz
+
+      # 9. Upload archive to Sigma Host
+      - name: 🚀 Upload Build Archive to Sigma Host
+        run: |
+          echo "Uploading build archive to Sigma Host..."
+          scp -v -o ConnectTimeout=60 build.tar.gz sigma-host:build.tar.gz
+          echo "Upload completed"
+
+      # 10. Extract and deploy on Sigma Host
+      - name: 📂 Extract and Deploy on Sigma Host
+        run: |
+          ssh sigma-host powershell -NoProfile -NonInteractive -Command - << 'EOF'
+          $ErrorActionPreference = 'Stop'
+
+          Write-Host "Extracting build archive..."
+          $archivePath = Join-Path $env:USERPROFILE "build.tar.gz"
+          $targetPath = "C:\sigma\sigma-frontend-prd"
+
+          if (-not (Test-Path $archivePath)) {
+            throw "Archive not found at: $archivePath"
+          }
+
+          Write-Host "Archive found: $archivePath"
+          Write-Host "Target path: $targetPath"
+
+          # Extract using tar (available in Windows 10+)
+          Write-Host "Extracting to target directory..."
+          tar -xzf $archivePath -C $targetPath
+
+          # Clean up archive
+          Remove-Item $archivePath -Force
+          Write-Host "Extraction completed and archive cleaned up"
+
+          # List deployed files
+          Write-Host "Deployed files:"
+          Get-ChildItem $targetPath | Select-Object Name, Length, LastWriteTime
+          EOF
+
+      # 11. Verify deployment
+      - name: ✅ Verify Deployment
+        run: |
+          echo "Verifying deployment on Sigma Host..."
+          ssh sigma-host "dir C:\\sigma\\sigma-frontend-prd"
+
+      # 12. Done
+      - name: 🎉 Done
+        run: |
+          echo "🚀 SvelteKit static build deployed successfully to Socfin environment!"
+          echo "📍 Deployment path: C:\\sigma\\sigma-frontend-prd"
+          echo "🔗 Connection chain: GitHub Actions → VPS Proxy → Tunnel Host → Sigma Host"

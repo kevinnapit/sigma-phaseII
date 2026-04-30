@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout source code
+      - name: 📂 Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Setup Bun
+      - name: 🧰 Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      # 3. Install dependencies
+      - name: 📦 Install Dependencies
+        run: bun install
+
+      # 4. Build SvelteKit (STATIC) with ENV
+      - name: ⚙️ Build SvelteKit App
+        env:
+          PUBLIC_API_BASE_URL: ${{ secrets.PUBLIC_API_BASE_URL }}
+          PUBLIC_AUTH_API_URL: ${{ secrets.PUBLIC_AUTH_API_URL }}
+          PUBLIC_T1_API_HRM_URL: ${{ secrets.PUBLIC_T1_API_HRM_URL }}
+          PUBLIC_T1_API_PRS_URL: ${{ secrets.PUBLIC_T1_API_PRS_URL }}
+          PUBLIC_T1_API_CLINIC_URL: ${{ secrets.PUBLIC_T1_API_CLINIC_URL }}
+          PUBLIC_T2_API_URL: ${{ secrets.PUBLIC_T2_API_URL }}
+          PUBLIC_T3_API_URL: ${{ secrets.PUBLIC_T3_API_URL }}
+          PUBLIC_SEND_CREDENTIALS: ${{ secrets.PUBLIC_SEND_CREDENTIALS }}
+          PUBLIC_NOTIFICATION_API_URL: ${{ secrets.PUBLIC_NOTIFICATION_API_URL }}
+          SW_DEV: ${{ secrets.SW_DEV }}
+          INJECT_MANIFEST: ${{ secrets.INJECT_MANIFEST }}
+          PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.PUBLIC_VAPID_PUBLIC_KEY }}
+          FALLBACK_ENABLED: ${{ secrets.FALLBACK_ENABLED }}
+        run: |
+          echo "===== BUILD ENV DEBUG ====="
+          echo "PUBLIC_API_BASE_URL=${PUBLIC_API_BASE_URL}"
+          echo "PUBLIC_AUTH_API_URL=${PUBLIC_AUTH_API_URL}"
+          echo "PUBLIC_T1_API_URL=${PUBLIC_T1_API_URL}"
+          echo "PUBLIC_T2_API_URL=${PUBLIC_T2_API_URL}"
+          echo "PUBLIC_T3_API_URL=${PUBLIC_T3_API_URL}"
+          echo "PUBLIC_SEND_CREDENTIALS=${PUBLIC_SEND_CREDENTIALS}"
+          echo "PUBLIC_NOTIFICATION_API_URL=${PUBLIC_NOTIFICATION_API_URL}"
+          echo "SW_DEV=${SW_DEV}"
+          echo "INJECT_MANIFEST=${INJECT_MANIFEST}"
+          echo "PUBLIC_VAPID_PUBLIC_KEY=${PUBLIC_VAPID_PUBLIC_KEY}"
+          echo "FALLBACK_ENABLED=${FALLBACK_ENABLED}"
+          echo "==========================="
+
+          bun --bun run build
+
+          echo "===== BUILD OUTPUT CHECK ====="
+          ls -lah build || ls -lah dist
+
+          echo "===== BUNDLE SIZE CHECK ====="
+          du -sh build || du -sh dist
+
+      # 7. Done
+      - name: 🎉 Done
+        run: echo "🚀 SvelteKit static build successfully!"
