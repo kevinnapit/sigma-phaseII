@@ -62,7 +62,11 @@
 						currentStep === 'waiting' || currentStep === 'result' ? 'bg-green-500 text-white' : 
 						'bg-gray-200 text-gray-600'
 					}`}>
-						{currentStep === 'submit' ? '1' : <CheckCircle class="h-4 w-4" />}
+						{#if currentStep === 'submit'}
+							1
+						{:else}
+							<CheckCircle class="h-4 w-4" />
+						{/if}
 					</div>
 					<span class="text-sm font-medium">Kirim ke SAP</span>
 				</div>
@@ -76,8 +80,13 @@
 						currentStep === 'result' ? 'bg-green-500 text-white' : 
 						'bg-gray-200 text-gray-600'
 					}`}>
-						{currentStep === 'waiting' ? <Clock class="h-4 w-4 animate-spin" /> : 
-						 currentStep === 'result' ? <CheckCircle class="h-4 w-4" /> : '2'}
+						{#if currentStep === 'waiting'}
+							<Clock class="h-4 w-4 animate-spin" />
+						{:else if currentStep === 'result'}
+							<CheckCircle class="h-4 w-4" />
+						{:else}
+							2
+						{/if}
 					</div>
 					<span class="text-sm font-medium">Menunggu SAP</span>
 				</div>
@@ -90,7 +99,11 @@
 						currentStep === 'result' ? 'bg-blue-500 text-white' : 
 						'bg-gray-200 text-gray-600'
 					}`}>
-						{currentStep === 'result' ? <Building2 class="h-4 w-4" /> : '3'}
+						{#if currentStep === 'result'}
+							<Building2 class="h-4 w-4" />
+						{:else}
+							3
+						{/if}
 					</div>
 					<span class="text-sm font-medium">Hasil & Proses</span>
 				</div>

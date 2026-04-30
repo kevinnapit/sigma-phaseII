@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { ChevronRight, ChevronDown, Warehouse, Package, MapPin } from 'lucide-svelte';
-	import { mockItemGroups, mockStorageCells } from '../api/item-storage.mock';
+	import { mockRacks, mockStorageCells } from '../api/item-storage.mock';
 	import type { StorageCell } from '../types/item-storage.types';
 
 	interface Props {
@@ -58,22 +58,22 @@
 			</div>
 		</div>
 		<div class="p-2">
-			{#each mockItemGroups as group}
-				{@const groupCells = mockStorageCells.filter((c) => c.item_group_id === group.id)}
-				{@const isExpanded = expandedGroups.has(group.id)}
+			{#each mockRacks as group}
+				{@const groupCells = mockStorageCells.filter((c) => c.item_group_id === group.item_group_id)}
+				{@const isExpanded = expandedGroups.has(group.item_group_id)}
 
 				<!-- Group row -->
 				<button
 					type="button"
 					class="flex w-full items-center gap-1 rounded px-2 py-1.5 text-left text-sm hover:bg-accent"
-					onclick={() => toggleGroup(group.id)}
+					onclick={() => toggleGroup(group.item_group_id)}
 				>
 					{#if isExpanded}
 						<ChevronDown class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 					{:else}
 						<ChevronRight class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
 					{/if}
-					<span class="truncate font-medium">{group.name}</span>
+					<span class="truncate font-medium">{group.item_group_name}</span>
 				</button>
 
 				<!-- Cells under group -->

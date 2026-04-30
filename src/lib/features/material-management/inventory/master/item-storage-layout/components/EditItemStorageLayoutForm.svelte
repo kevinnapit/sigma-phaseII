@@ -153,14 +153,9 @@
 
 				<div class="space-y-2">
 					<Label for="store">Gudang <span class="text-destructive">*</span></Label>
-					<Select.Root
-						selected={stores.find((s) => s.value === formData.store_id)}
-						onSelectedChange={(v) => {
-							if (v) formData.store_id = v.value;
-						}}
-					>
+					<Select.Root type="single" bind:value={formData.store_id}>
 						<Select.Trigger id="store" disabled={updateMutation.isPending}>
-							<Select.Value placeholder="Pilih gudang" />
+							{stores.find((s) => s.value === formData.store_id)?.label || "Pilih gudang"}
 						</Select.Trigger>
 						<Select.Content>
 							{#each stores as store}
@@ -176,13 +171,14 @@
 				<div class="space-y-2">
 					<Label for="parent">Parent (Opsional)</Label>
 					<Select.Root
-						selected={parentLayouts.find((p) => p.value === (formData.parent_id || ''))}
-						onSelectedChange={(v) => {
-							if (v) formData.parent_id = v.value || undefined;
+						type="single"
+						value={formData.parent_id || ''}
+						onValueChange={(v) => {
+							formData.parent_id = v || undefined;
 						}}
 					>
 						<Select.Trigger id="parent" disabled={updateMutation.isPending}>
-							<Select.Value placeholder="Pilih parent" />
+							{parentLayouts.find((p) => p.value === (formData.parent_id || ''))?.label || "Pilih parent"}
 						</Select.Trigger>
 						<Select.Content>
 							{#each parentLayouts as parent}
