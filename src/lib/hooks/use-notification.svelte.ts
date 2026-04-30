@@ -2,7 +2,8 @@
  * Push subscription management using the Push API.
  */
 
-import { PUBLIC_VAPID_PUBLIC_KEY } from '$env/static/public';
+// import { PUBLIC_VAPID_PUBLIC_KEY } from '$env/static/public';
+
 import { getUserContext, UserContext } from '$lib/modules/auth/context/user.svelte';
 import type { components as notifComponents } from '$lib/generated/notification/openapi.gen';
 import { createContext } from 'svelte';
@@ -47,6 +48,10 @@ class NotificationManager {
 	 * Creates a new push subscription using the Push API.
 	 */
 	async subscribe() {
+		// Fitur notifikasi di-disable sementara
+		console.log('[Push] Fitur notifikasi sedang dinonaktifkan.');
+		return null;
+		/*
 		if (!this.swRegistration) return null;
 		const applicationServerKey = this.urlBase64ToUint8Array(PUBLIC_VAPID_PUBLIC_KEY);
 		const subscription = await this.swRegistration.pushManager.subscribe({
@@ -57,6 +62,7 @@ class NotificationManager {
 
 		console.log('[Push] Subscribed:', subscription);
 		return subscription;
+		*/
 	}
 
 	/**
