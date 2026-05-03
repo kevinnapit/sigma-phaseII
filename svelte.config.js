@@ -11,6 +11,9 @@ const config = {
 		adapter: adapter({
 			fallback: '404.html'
 		}),
+		paths: {
+			base: process.env.BASE_PATH || ''
+		},
 
 		output: {
 			bundleStrategy: 'split'
